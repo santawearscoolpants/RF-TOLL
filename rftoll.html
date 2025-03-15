@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Toll Booth Portal</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar section -->
+    <aside class="sidebar">
+      <div class="logo">GCTU Toll</div>
+      <img src="GCTU LOGO.png" alt="Toll Logo">
+      <nav>
+        <ul>
+          <li><a href="index.html">Dashboard</a></li>
+          <li><a href="transactions.html">My History</a></li>
+          <li><a href="#">Passes</a></li>
+          <li><a href="userlist.html">User List</a></li>
+        </ul>
+      </nav>
+    </aside>
+    <!-- Main content area -->
+    <main class="content">
+      <header class="header">
+        <div class="title">Smart Toll Booth Portal</div>
+      </header>
+      <div class="tabs-section">
+        <!-- Tabs for Registration and Top-Up -->
+        <div class="tabs" role="tablist" style="text-align:center; margin-bottom:20px;">
+          <button id="registrationTabBtn" class="active" data-tab="registrationTab" role="tab" aria-selected="true">Registration</button>
+          <button id="topUpTabBtn" data-tab="topUpTab" role="tab" aria-selected="false">Top-Up</button>
+        </div>
+        <!-- Registration Tab -->
+        <div id="registrationTab" class="tab-content active" role="tabpanel">
+          <h2 class="text-center">Vehicle Registration</h2>
+          <form id="registrationForm">
+            <label for="uid">Vehicle UID:</label>
+            <input type="text" id="uid" class="form-control" required>
+            <label for="plateNumber">Plate Number:</label>
+            <input type="text" id="plateNumber" class="form-control" required>
+            <label for="driverName">Driver Name:</label>
+            <input type="text" id="driverName" class="form-control" required>
+            <label for="phoneNumber">Phone Number:</label>
+            <input type="tel" id="phoneNumber" class="form-control" required>
+            <label for="ghanaCard">Ghana Card Number:</label>
+            <input type="text" id="ghanaCard" class="form-control" required>
+            <label for="initialBalance">Initial Balance:</label>
+            <input type="number" id="initialBalance" class="form-control" step="0.01" required>
+            <button type="submit" class="btn btn-primary">Register My Vehicle</button>
+            <div id="registrationMessage" class="message" role="alert"></div>
+          </form>
+        </div>
+        <!-- Top-Up Tab -->
+        <div id="topUpTab" class="tab-content" role="tabpanel">
+          <h2 class="text-center">Account Top-Up</h2>
+          <form id="topUpForm">
+            <label for="topUpUID">Vehicle UID:</label>
+            <input type="text" id="topUpUID" class="form-control" required>
+            <label for="topUpAmount">Top-Up Amount:</label>
+            <input type="number" id="topUpAmount" class="form-control" step="0.01" required>
+            <button type="submit" class="btn btn-success">Top Up My Account</button>
+            <div id="topUpMessage" class="message" role="alert"></div>
+          </form>
+        </div>
+      </div>
+    </main>
+    <button class="sidebar-toggle-button">&#9776;</button>
+  </div>
+  <script>
+    // Supabase configuration
+    const SUPABASE_URL = "https://txraogtqkppnjofuoemg.supabase.co";
+    const SUPABASE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4cmFvZ3Rxa3BwbmpvZnVvZW1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3MTgzNTIsImV4cCI6MjA1NzI5NDM1Mn0._10O_sLBh12lbGtI7m_ZZLLygc8OJrPVkf27DyLGdVc";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_API_KEY);
+
+    // Tab switching functionality
+    document.addEventListener("DOMContentLoaded", () => {
+      const tabs = document.querySelectorAll(".tabs button");
+      const tabContents = document.querySelectorAll(".tab-content");
+
+      tabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+          tabs.forEach(t => {
+            t.classList.remove("active");
+            t.setAttribute("aria-selected", "false");
+          });
+          tab.classList.add("active");
+          tab.setAttribute("aria-selected", "true");
+          tabContents.forEach(content => content.classList.remove("active"));
+          document.getElementById(tab.dataset.tab).classList.add("active");
+        });
+      });
+    });
+
+    // Function to display messages
+    function showMessage(elementId, message, isError = false) {
+      const messageBox = document.getElementById(elementId);
+      messageBox.textContent = message;
+      messageBox.style.color = isError ? "red" : "green";
+    }
+
+    // Registration Form Submission Handler
+    document.getElementById("registrationForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = {
+        uid: document.getElementById("uid").value.trim(),
+        plate_number: document.getElementById("plateNumber").value.trim(),
+        driver_name: document.getElementById("driverName").value.trim(),
+        phone_number: document.getElementById("phoneNumber").value.trim(),
+        ghana_card_number: document.getElementById("ghanaCard").value.trim(),
+        balance: parseFloat(document.getElementById("initialBalance").value)
+      };
+      try {
+        const { error } = await supabaseClient.from("vehicle_accounts").insert([payload]);
+        if (error) {
+          showMessage("registrationMessage", `Error: ${error.message}`, true);
+        } else {
+          showMessage("registrationMessage", "Registration successful!");
+        }
+      } catch (err) {
+        showMessage("registrationMessage", `Error: ${err.message}`, true);
+      }
+    });
+
+    // Top-Up Form Submission Handler
+    document.getElementById("topUpForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = {
+        uid: document.getElementById("topUpUID").value.trim(),
+        timestamp: new Date().toISOString(),
+        transaction_type: "TOP_UP",
+        amount: parseFloat(document.getElementById("topUpAmount").value)
+      };
+      try {
+        const { error } = await supabaseClient.from("transactions").insert([payload]);
+        if (error) {
+          showMessage("topUpMessage", `Error: ${error.message}`, true);
+        } else {
+          showMessage("topUpMessage", "Top-up successful!");
+        }
+      } catch (err) {
+        showMessage("topUpMessage", `Error: ${err.message}`, true);
+      }
+    });
+
+    // Sidebar toggle functionality
+    const sidebar = document.querySelector('.sidebar');
+    const content = document.querySelector('.content');
+    const toggleButton = document.querySelector('.sidebar-toggle-button');
+
+    toggleButton.addEventListener('click', () => {
+      sidebar.classList.toggle('closed');
+      content.classList.toggle('closed');
+      toggleButton.classList.toggle('closed');
+    });
+  </script>
+</body>
+</html>

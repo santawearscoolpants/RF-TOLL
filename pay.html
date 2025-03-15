@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Transaction</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <!-- Include jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body {
+      background-color: #014d79;
+    }
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
+    .text-center {
+      text-align: center;
+    }
+    .mt-4 {
+      margin-top: 4rem;
+    }
+    .mb-4 {
+      margin-bottom: 4rem;
+    }
+    .form-control {
+      width: 100%;
+      height: 40px;
+      margin-bottom: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .btn {
+      width: 100%;
+      height: 40px;
+      margin-bottom: 20px;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background-color: #007bff;
+      color: #fff;
+    }
+    .btn-success {
+      background-color: #28a745;
+      color: #fff;
+    }
+    .alert {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .alert-info {
+      background-color: #cff4fc;
+      border-color: #b6dff4;
+    }
+    .alert-success {
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+    }
+  </style>
+  <script>
+    function checkTollStatus() {
+      let plateNumber = $("#plateNumber-UID").val();
+      if (plateNumber === "") {
+        alert("Please enter a plate number (UID).");
+        return;
+      }
+      $.get(`http://localhost:8000/get-vehicle-info/${plateNumber}`, function(data) {
+        $("#tollStatus").html(`
+          <div class="alert alert-info">
+            Plate Number: ${data.plate_number} <br>
+            Toll Amount: ${data.toll_amount} <br>
+            Status: ${data.flag_status}
+          </div>
+        `);
+      }).fail(function() {
+        $("#tollStatus").html(`<div class="alert alert-danger">Vehicle not found</div>`);
+      });
+    }
+    function payToll() {
+      let plateNumber = $("#payPlateNumber").val();
+      let amount = $("#payAmount").val();
+      if (plateNumber === "" || amount === "") {
+        alert("Please fill in all fields.");
+        return;
+      }
+      $.ajax({
+        url: "http://localhost:8000/deduct-toll",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ plate_number: plateNumber, amount: parseFloat(amount) }),
+        success: function(response) {
+          $("#paymentStatus").html(`<div class="alert alert-success">${response.message}</div>`);
+          checkTollStatus();
+        },
+        error: function(xhr) {
+          $("#paymentStatus").html(`<div class="alert alert-danger">${xhr.responseJSON.detail}</div>`);
+        }
+      });
+    }
+  </script>
+</head>
+<body>
+  <div class="container mt-4">
+    <h1 class="text-center mb-4">PAYMENT TRANSACTION</h1>
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <h2 class="text-center mb-4">Check Toll Status</h2>
+        <input type="text" id="plateNumber-UID" class="form-control" placeholder="Enter Plate Number (UID)">
+        <button class="btn btn-primary mt-2" onclick="checkTollStatus()">Check Status</button>
+        <div id="tollStatus" class="mt-3"></div>
+      </div>
+    </div>
+    <div class="row justify-content-center mt-4">
+      <div class="col-md-6">
+        <h2 class="text-center mb-4">Pay Toll</h2>
+        <input type="text" id="payPlateNumber" class="form-control" placeholder="Enter Plate Number (UID)">
+        <input type="number" id="payAmount" class="form-control mt-2" placeholder="Enter Amount">
+        <button class="btn btn-success mt-2" onclick="payToll()">Pay Toll</button>
+        <div id="paymentStatus" class="mt-3"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
